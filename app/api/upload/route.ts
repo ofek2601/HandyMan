@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { utapi } from "@/lib/uploadthing-server";
 
-// Placeholder upload route - will be replaced with Uploadthing integration
-// For now, accepts files and returns placeholder URLs for testing the form flow
 export async function POST(request: NextRequest) {
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -18,7 +17,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const formData = await request.formData();
-    const files = formData.getAll("photos");
+    const files = formData.getAll("photos") as File[];
 
     if (files.length === 0) {
       return NextResponse.json({ error: "לא נבחרו קבצים" }, { status: 400 });
@@ -28,9 +27,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "ניתן להעלות עד 3 תמונות" }, { status: 400 });
     }
 
-    // TODO: Replace with Uploadthing integration
-    // For now, return placeholder URLs so the form flow works end-to-end
-    const urls = files.map((_, i) => `/placeholder-photo-${Date.now()}-${i}.jpg`);
+    for (const file of files) {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+        return NextResponse.json({ error: "ניתן להעלות רק תמונות (JPG, PNG, WebP)" }, { status: 400 });
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        return NextResponse.json({ error: "גודל קובץ מקסימלי: 5MB" }, { status: 400 });
+      }
+    }
+
+    const response = await utapi.uploadFiles(files);
+    const urls = response
+      .filter((r) => r.data)
+      .map((r) => r.data!.ufsUrl);
+
+    if (urls.length === 0) {
+      return NextResponse.json({ error: "שגיאה בהעלאת הקבצים" }, { status: 500 });
+    }
 
     return NextResponse.json({ urls });
   } catch {
