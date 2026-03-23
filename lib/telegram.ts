@@ -37,7 +37,7 @@ export async function sendTelegramNotification(request: {
     "",
     `📊 *מספר בתור:* ${request.queuePosition}`,
     "",
-    `[פתח בלוח הניהול](${escapeMarkdown(adminUrl)})`,
+    `[פתח בלוח הניהול](${adminUrl})`,
   ].join("\n");
 
   try {

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { db } from "@/db";
 import { requests } from "@/db/schema";
 import { requestFormSchema } from "@/lib/validations";
@@ -57,17 +57,19 @@ export async function POST(request: NextRequest) {
     queuePosition,
   });
 
-  // Fire-and-forget — never delays or blocks the user response
-  sendTelegramNotification({
-    id,
-    name,
-    phone,
-    address,
-    workType,
-    description,
-    queuePosition,
-    photoUrls: photoUrls ?? null,
-  }).catch(() => {});
+  // Run after response is sent — guaranteed to complete on Vercel
+  after(async () => {
+    await sendTelegramNotification({
+      id,
+      name,
+      phone,
+      address,
+      workType,
+      description,
+      queuePosition,
+      photoUrls: photoUrls ?? null,
+    }).catch(() => {});
+  });
 
   return NextResponse.json({ id, queuePosition }, { status: 201 });
 }
