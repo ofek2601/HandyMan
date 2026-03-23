@@ -15,6 +15,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (!process.env.UPLOADTHING_TOKEN) {
+    console.error("UPLOADTHING_TOKEN is not set");
+    return NextResponse.json({ error: "שגיאה בהעלאת הקבצים" }, { status: 500 });
+  }
+
   try {
     const formData = await request.formData();
     const files = formData.getAll("photos") as File[];
@@ -37,16 +42,23 @@ export async function POST(request: NextRequest) {
     }
 
     const response = await utapi.uploadFiles(files);
-    const urls = response
+    // uploadFiles returns a single object for one file, array for multiple
+    const results = Array.isArray(response) ? response : [response];
+    const urls = results
       .filter((r) => r.data)
-      .map((r) => r.data!.ufsUrl);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((r) => (r.data as any).ufsUrl ?? (r.data as any).url)
+      .filter(Boolean);
 
     if (urls.length === 0) {
+      const errors = results.map((r) => r.error?.message).filter(Boolean);
+      console.error("Uploadthing upload failed:", errors);
       return NextResponse.json({ error: "שגיאה בהעלאת הקבצים" }, { status: 500 });
     }
 
     return NextResponse.json({ urls });
-  } catch {
+  } catch (err) {
+    console.error("Upload route error:", err);
     return NextResponse.json({ error: "שגיאה בהעלאת הקבצים" }, { status: 500 });
   }
 }
