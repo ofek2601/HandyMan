@@ -1,7 +1,3 @@
-function escapeMarkdown(text: string): string {
-  return text.replace(/[_*\[\]()~`>#+\-=|{}.!\\]/g, "\\$&");
-}
-
 export async function sendTelegramNotification(request: {
   id: string;
   name: string;
@@ -15,42 +11,48 @@ export async function sendTelegramNotification(request: {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
 
-  if (!botToken || !chatId) return;
+  if (!botToken || !chatId) {
+    console.error("Telegram env vars missing:", { botToken: !!botToken, chatId: !!chatId });
+    return;
+  }
 
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "https://your-app.vercel.app";
   const adminUrl = `${siteUrl}/admin`;
 
   const photoLine = request.photoUrls?.length
-    ? `📷 תמונות: ${request.photoUrls.length} צורפו`
-    : "📷 תמונות: לא צורפו";
+    ? `תמונות: ${request.photoUrls.length} צורפו`
+    : "תמונות: לא צורפו";
 
   const message = [
-    "🔔 *בקשה חדשה התקבלה\\!*",
+    "--- בקשה חדשה התקבלה! ---",
     "",
-    `👤 *שם:* ${escapeMarkdown(request.name)}`,
-    `📞 *טלפון:* ${escapeMarkdown(request.phone)}`,
-    `📍 *כתובת:* ${escapeMarkdown(request.address)}`,
-    `🔧 *סוג עבודה:* ${escapeMarkdown(request.workType)}`,
-    `📝 *תיאור:* ${escapeMarkdown(request.description)}`,
+    `שם: ${request.name}`,
+    `טלפון: ${request.phone}`,
+    `כתובת: ${request.address}`,
+    `סוג עבודה: ${request.workType}`,
+    `תיאור: ${request.description}`,
     photoLine,
     "",
-    `📊 *מספר בתור:* ${request.queuePosition}`,
+    `מספר בתור: ${request.queuePosition}`,
     "",
-    `[פתח בלוח הניהול](${adminUrl})`,
+    `לוח ניהול: ${adminUrl}`,
   ].join("\n");
 
   try {
-    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chat_id: chatId,
         text: message,
-        parse_mode: "MarkdownV2",
-        disable_web_page_preview: true,
       }),
     });
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error("Telegram API error:", res.status, body);
+    }
   } catch (error) {
     console.error("Telegram notification failed:", error);
   }

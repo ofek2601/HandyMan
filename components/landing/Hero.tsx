@@ -45,7 +45,7 @@ export function Hero() {
         >
           השאירו פרטים 
         </button>
-        {/* {handymanPhone && (
+        {handymanPhone && (
           <p className="mt-6 text-text-secondary">
             או התקשרו:{" "}
             <a
@@ -55,7 +55,7 @@ export function Hero() {
               {handymanPhone}
             </a>
           </p>
-        )} */}
+        )}
       </div>
     </section>
   );
