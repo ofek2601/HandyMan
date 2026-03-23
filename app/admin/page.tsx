@@ -47,15 +47,24 @@ function AdminContent() {
   // Auth: check key param, set cookie, redirect clean
   useEffect(() => {
     const key = searchParams.get("key");
+
     if (key) {
-      // Set cookie via a simple fetch to verify + store
-      document.cookie = `handyman_admin=${key}; path=/; max-age=${30 * 24 * 60 * 60}; samesite=lax`;
-      // Remove key from URL
-      router.replace("/admin");
+      // Verify key against API first, then store cookie
+      fetch(`/api/stats?key=${encodeURIComponent(key)}`)
+        .then((res) => {
+          if (res.ok) {
+            document.cookie = `handyman_admin=${key}; path=/; max-age=${30 * 24 * 60 * 60}; samesite=lax`;
+            setAuthed(true);
+            router.replace("/admin");
+          } else {
+            setAuthed(false);
+          }
+        })
+        .catch(() => setAuthed(false));
       return;
     }
 
-    // Check auth by hitting the stats endpoint
+    // No key param — check existing cookie
     fetch("/api/stats")
       .then((res) => {
         if (res.ok) {
