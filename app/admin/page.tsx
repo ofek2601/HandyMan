@@ -54,8 +54,9 @@ function AdminContent() {
         .then((res) => {
           if (res.ok) {
             document.cookie = `handyman_admin=${key}; path=/; max-age=${30 * 24 * 60 * 60}; samesite=lax`;
+            // Use history API to clean URL without triggering effect re-run
+            window.history.replaceState(null, "", "/admin");
             setAuthed(true);
-            router.replace("/admin");
           } else {
             setAuthed(false);
           }
